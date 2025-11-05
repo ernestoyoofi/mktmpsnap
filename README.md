@@ -4,6 +4,9 @@
 
 **MKTMPSNAP** (Mikrotik Temporary Snapshot) is a lightweight system for performing temporary and anonymous backups of Mikrotik configurations without worrying about losing previous settings. It uses the Mikrotik API and cronjobs to automatically perform backups.
 
+> [!NOTE]
+> The project is not yet complete.
+
 ## 🤔 Why this project was created?
 
 This project was born from the frustrations during practical work at school, where time was often limited. MKTMPSNAP allows users to quickly download and restore Mikrotik backup files at any time.
