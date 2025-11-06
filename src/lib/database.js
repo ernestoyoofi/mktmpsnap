@@ -2,6 +2,7 @@ import "dotenv"
 import { Database } from "bun:sqlite"
 import { v4 as uuidv4 } from "uuid"
 import { folderContextBackup } from "./mk.backup-config"
+import CheckConnectionMikrotik from "./mk.check-connection"
 import validationform from "./validation.createsnapshot"
 import path from "path"
 import fs from "fs"
@@ -53,7 +54,7 @@ FROM snapshot;`)
     const execute = Array.from(querysb.all()).map(a => ({
       uuid: String(a.uuid),
       mikrotik: {
-        ip: String(a.mikrotik_hostname),
+        host: String(a.mikrotik_hostname),
         username: String(a.mikrotik_username||"admin"),
         password: String(a.mikrotik_password||""),
         port: a.mikrotik_port||8728,
@@ -85,6 +86,19 @@ async function CreateSnapShot({
   const dataValidate = validationform(body)
   if(!!dataValidate) {
     return dataValidate
+  }
+  const validateFm = await CheckConnectionMikrotik({
+    host: body.mikrotik_hostname,
+    username: body.mikrotik_username,
+    password: body.mikrotik_password,
+    port: body.mikrotik_port,
+  })
+  if(validateFm.status !== "success") {
+    return {
+      status: "error",
+      code: 400,
+      message: "Can't connect to your mikrotik!"
+    }
   }
   const cronjobuuid = uuidv4()
   const sqlquery = `INSERT INTO snapshot
@@ -143,6 +157,7 @@ async function ViewSnapShot({ body = { uuid: "" } }) {
         title: String(request.title||""),
         status: String(request.status||""),
         hostname: String(request.mikrotik_hostname||""),
+        backup_is_end: new Date(request.backup_end||"").getTime() < new Date().getTime(),
         backup_end: new Date(request.backup_end||""),
         backup_last: request.backup_last? new Date(request.backup_last||""):null,
       },

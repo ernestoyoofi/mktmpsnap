@@ -3,7 +3,7 @@ import { CronJob } from "cron"
 import { serve } from "bun"
 import fs from "fs"
 import database from "./lib/database"
-import { folderContextBackup } from "./lib/mk.backup-config"
+import BackupCronJobs, { folderContextBackup } from "./lib/mk.backup-config"
 import index from "./index.html"
 import path from "path"
 
@@ -39,8 +39,18 @@ async function CronJobExecutedBackup() {
       const folderContext = folderContextBackup(jobs_id)
 
       if(!a.isEnd) {
-        console.log("[Cron Jobs]: 📂 Start Backup "+jobs_id+" ...")
         // Processing backup!
+        console.log("[Cron Jobs]: 📂 Start Backup "+jobs_id+" ...")
+        BackupCronJobs({ ...(a.mikrotik), uuid_backup: jobs_id }).then(res => {
+          let statusMsg = `Success save configuration on ${new Date().toString()}`
+          if(res.status !== "success") {
+            statusMsg = String(res.message||"Unknowing error mikrotik backup!")
+          }
+          console.log("[Cron Jobs]: 📂 Jobs: "+jobs_id+" with status: "+String(statusMsg))
+          database.UpdateStatusSnapShot({
+            body: { uuid: jobs_id, message: statusMsg }
+          })
+        })
       }
 
       if(!!a.isTemporaryRm) {

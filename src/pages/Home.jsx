@@ -31,10 +31,10 @@ export default function HomeFormStartSnap() {
     } catch(e) {
       const axiosResponse = e.response
       if(axiosResponse) {
-        toast.error("[ServerError]:"+String(axiosResponse?.data?.message||axiosResponse?.data||"Unknowing"))
+        toast.error("[ServerError]: "+String(axiosResponse?.data?.message||axiosResponse?.data||"Unknowing"))
         return; // Stop On Ending
       }
-      toast.error("[ClientError]:"+String(e?.stack||"Unkowning"))
+      toast.error("[ClientError]: "+String(e?.stack||"Unkowning"))
     } finally {
       setTimeout(() => {
         setIsLoading(false)

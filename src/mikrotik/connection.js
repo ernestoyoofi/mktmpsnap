@@ -44,7 +44,7 @@ class MikrotikAPI {
   _connect() {
     this.client = new net.Socket()
     let client_timeout = setTimeout(() => {
-      this._emitMsg("status", { code: "timeout", error: "Error Timeout", status: "disconnect", isLogin: false })
+      this._emitMsg("status", { code: "timeout", error: "Error timeout connection", status: "disconnect", isLogin: false })
       this.client.destroy()
     }, this.config.timeout)
     let receivedDataBuf = Buffer.alloc(0)

@@ -15,7 +15,7 @@ function NotFound() {
 
 export function App() {
   return <>
-    <Toaster richColors/>
+    <Toaster richColors position="bottom-center"/>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomeFormStartSnap />} />

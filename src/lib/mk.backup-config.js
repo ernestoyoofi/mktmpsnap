@@ -44,7 +44,8 @@ async function BackupCronJobs({ host = params_ip, username = params_username, pa
     return {
       status: "error",
       save: false,
-      error: "File Not Found!"
+      error: "File Not Found!",
+      message: "File Not Found!",
     }
   }
   // Save
@@ -55,7 +56,8 @@ async function BackupCronJobs({ host = params_ip, username = params_username, pa
     return {
       status: "error",
       save: false,
-      error: "File can't save!"
+      error: "File can't save!",
+      message: "File can't save!",
     }
   }
   // Delete
@@ -65,7 +67,8 @@ async function BackupCronJobs({ host = params_ip, username = params_username, pa
     return {
       status: "error",
       save: false,
-      error: String(rm_file?.data[0]?.message||"Unknowing")
+      error: String(rm_file?.data[0]?.message||"Unknowing"),
+      message: String(rm_file?.data[0]?.message||"Unknowing"),
     }
   }
   // Close
