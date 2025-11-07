@@ -68,15 +68,15 @@ async function CronJobExecutedBackup() {
   cron_info = { start_execute: time_start, finis_execute: time_end }
 }
 
-// First Executed()
+// [ 📦 First Executed ]
 CronJobExecutedBackup()
-// Cron Jobs
-// new CronJob(
-//   cron_config.time,
-//   CronJobExecutedBackup,
-//   null, true,
-//   cron_config.timezone
-// )
+// [ 📦 Cron Jobs ]
+new CronJob(
+  cron_config.time,
+  CronJobExecutedBackup,
+  null, true,
+  cron_config.timezone
+)
 
 const server = serve({
   routes: {
@@ -95,11 +95,14 @@ const server = serve({
     "/api/v1/snapshot/create": {
       async POST(req) {
         try {
+          const stateURL = new URL(req.url).searchParams
+          const immediatelyAccess = stateURL.get("immediately") === "true"
           const dataBody = await req.body.json()
           const dataResponse = await database.CreateSnapShot({
+            fast_connect: immediatelyAccess,
             body: dataBody
           })
-          const statusRes = dataResponse.status !== "success"? 400 : dataResponse?.code? dataResponse.code : 200
+          const statusRes = dataResponse.status !== "success"? dataResponse?.code? dataResponse.code : 400 : 200
           return Response.json(dataResponse, { status: statusRes, headers: defaultheaders })
         } catch(e) {
           console.log("[Debugging API Error]: /api/v1/temp-snap/create", e.stack)
@@ -119,7 +122,7 @@ const server = serve({
           const get_uuid = query.get("uuid")
           console.log("[API Request]: 🔥 Access Data:", get_uuid)
           const dataResponse = await database.ViewSnapShot({ body: { uuid: get_uuid }})
-          const statusRes = dataResponse.status !== "success"? 400 : dataResponse?.code? dataResponse.code : 200
+          const statusRes = dataResponse.status !== "success"? dataResponse?.code? dataResponse.code : 400 : 200
           return Response.json(dataResponse, { status: statusRes, headers: defaultheaders })
         } catch(e) {
           console.log("[Debugging API Error]: /api/v1/temp-snap/create", e.stack)

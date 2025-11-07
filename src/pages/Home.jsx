@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 export default function HomeFormStartSnap() {
   const [isLoading, setIsLoading] = useState(false)
+  const [isHiddenTime, setIsHiddenTime] = useState(false)
   const navigate = useNavigate()
 
   async function CreateSnapshot(e) {
@@ -12,9 +13,10 @@ export default function HomeFormStartSnap() {
     if(isLoading) return; // Skip!
     setIsLoading(true)
     try {
-      const apibaseurl = "/api/v1/snapshot/create"
       const dataform = Object.fromEntries(new FormData(e.target))
       const datajson = { ...dataform, mikrotik_port: Number(dataform.mikrotik_port) }
+      const backupImmediately = !!(datajson?.backup_immediately)
+      const apibaseurl = "/api/v1/snapshot/create"+(backupImmediately?"?immediately=true":"")
       const request = await axios.post(apibaseurl, datajson)
       if(request?.data?.status !== "success" && !!request?.data?.status) {
         toast.error(request?.data?.message||"Unknowing")
@@ -25,16 +27,16 @@ export default function HomeFormStartSnap() {
         toast.success("Success create snapshot!")
         return;
       }
-      toast.error("[ClientError]: The backend is not response properly.", {
+      toast.error("[Client Issues]: The backend is not response properly.", {
         description: String(request?.data||"-")
       })
     } catch(e) {
       const axiosResponse = e.response
       if(axiosResponse) {
-        toast.error("[ServerError]: "+String(axiosResponse?.data?.message||axiosResponse?.data||"Unknowing"))
+        toast.error("[Error]: "+String(axiosResponse?.data?.message||axiosResponse?.data||"Unknowing"))
         return; // Stop On Ending
       }
-      toast.error("[ClientError]: "+String(e?.stack||"Unkowning"))
+      toast.error("[Client Issues]: "+String(e?.stack||"Unkowning"))
     } finally {
       setTimeout(() => {
         setIsLoading(false)
@@ -86,7 +88,7 @@ export default function HomeFormStartSnap() {
           name="mikrotik_port"  
         />
       </label>
-      <label className="w-full block mt-1.5">
+      {!isHiddenTime && <label className="w-full block mt-1.5">
         <span className="block w-full text-neutral-800 text-sm px-1 py-1.5">Time End Auto Backup <span className="text-red-500 text-sm">*</span></span>
         <input
           required
@@ -95,8 +97,19 @@ export default function HomeFormStartSnap() {
           placeholder="05/05/2025"
           name="backup_date"  
         />
-      </label>
+      </label>}
       <div className="my-5 border-t border-neutral-200"/>
+      <label className="w-full flex items-center text-neutral-500 px-1.5 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          name="backup_immediately"
+          onChange={(e) => {
+            const checking = Boolean(e?.target?.checked)
+            setIsHiddenTime(checking)
+          }}
+        />
+        <span className="pl-3 text-sm block">Backup immediately ⏱️</span>
+      </label>
       <button className="w-full block bg-blue-500 hover:bg-blue-700 text-white p-2 px-3.5 rounded-md mt-4.5 cursor-pointer shadow-md" type="submit">
         <span className="font-semibold pointer-events-none text-sm">{isLoading? "Waiting...":"Create Auto Backup!"}</span>
       </button>

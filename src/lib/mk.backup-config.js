@@ -16,7 +16,10 @@ const storagePath = path.join(String(process.env.BACKUP_STORAGE||"{pwd}/data/bac
 async function BackupCronJobs({ host = params_ip, username = params_username, password = params_password, port = params_port, uuid_backup = "" } = {}) {
   const checking = await CheckConnectionMikrotik({ host, username, password, port })
   if(checking.status !== "connect") {
-    return checking
+    return {
+      ...checking,
+      status: "error"
+    }
   }
   const config_apis = {
     host: host,

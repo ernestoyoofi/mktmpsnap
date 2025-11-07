@@ -7,7 +7,7 @@
     "mk.test-con": "bun src/lib/mk.check-connection",
     "dev": "bun --hot src/server.js",
     "start": "NODE_ENV=production bun src/server.js",
-    "build": "bun run build.ts"
+    "build": "bun run build.js"
   },
   "dependencies": {
     "axios": "^1.13.2",

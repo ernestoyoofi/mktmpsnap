@@ -3,7 +3,8 @@ import { Database } from "bun:sqlite"
 import { v4 as uuidv4 } from "uuid"
 import { folderContextBackup } from "./mk.backup-config"
 import CheckConnectionMikrotik from "./mk.check-connection"
-import validationform from "./validation.createsnapshot"
+import validationform, { validateForm_fastconnect } from "./validation.createsnapshot"
+import BackupCronJobs from "./mk.backup-config"
 import path from "path"
 import fs from "fs"
 import parseFileBackup from "./parse-file"
@@ -31,7 +32,8 @@ async function RunningSetupDatabase() {
   mikrotik_password TEXT,
   mikrotik_port INTEGER NOT NULL,
   backup_end DATE NOT NULL,
-  backup_last DATE
+  backup_last DATE,
+  is_immediately_backup INT
 );`.trim()).run()
   } catch(e) {
     console.log("[SQLite]: Error:", e.stack)
@@ -50,7 +52,7 @@ async function SnapShotCronJobs() {
   mikrotik_port,
   (CASE WHEN backup_end < datetime('now') THEN 1 ELSE 0 END) AS is_end,
   (CASE WHEN datetime('now') > datetime(backup_end, '+15 days') THEN 1 ELSE 0 END) AS is_temporary
-FROM snapshot;`)
+FROM snapshot WHERE is_immediately_backup = 0;`)
     const execute = Array.from(querysb.all()).map(a => ({
       uuid: String(a.uuid),
       mikrotik: {
@@ -75,6 +77,7 @@ FROM snapshot;`)
 
 // Create Snapshot
 async function CreateSnapShot({
+  fast_connect = false,
   body = {
     mikrotik_hostname: "",
     mikrotik_username: "",
@@ -83,6 +86,51 @@ async function CreateSnapShot({
     backup_date: ""
   }
 }) {
+  const sqlquery = `INSERT INTO snapshot
+(title, uuid, status, mikrotik_hostname, mikrotik_username, mikrotik_password, mikrotik_port, backup_end, is_immediately_backup, backup_last)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL);`
+  if(fast_connect) {
+    const dataValidate = validateForm_fastconnect(body)
+    if(!!dataValidate) {
+      return dataValidate
+    }
+    // Lost, try useing backup
+    const cronjobuuid = uuidv4()
+    const backupAction = await BackupCronJobs({
+      host: body.mikrotik_hostname,
+      username: body.mikrotik_username,
+      password: body.mikrotik_password,
+      port: body.mikrotik_port,
+      uuid_backup: cronjobuuid
+    })
+    if(backupAction.status !== "success") {
+      return {
+        status: "error",
+        code: backupAction?.code||400,
+        message: backupAction?.message||"Can't connect to your mikrotik!"
+      }
+    }
+    const stmt = db.prepare(sqlquery)
+    const insertdata = [
+      String(body?.title_snapshot||`Immediately Backup ${cronjobuuid}`),
+      cronjobuuid,
+      String("Immediately Backup !"),
+      String(body.mikrotik_hostname),
+      String(body.mikrotik_username),
+      String(body.mikrotik_password),
+      body.mikrotik_port || 8728,
+      new Date().toISOString(),
+      1
+    ]
+    stmt.run(insertdata)
+    return {
+      status: "success",
+      data: {
+        api: String(`/api/v1/snapshot/view?uuid=${cronjobuuid}`),
+        uuid: String(cronjobuuid),
+      }
+    }
+  }
   const dataValidate = validationform(body)
   if(!!dataValidate) {
     return dataValidate
@@ -93,7 +141,7 @@ async function CreateSnapShot({
     password: body.mikrotik_password,
     port: body.mikrotik_port,
   })
-  if(validateFm.status !== "success") {
+  if(validateFm.status !== "connect") {
     return {
       status: "error",
       code: 400,
@@ -101,9 +149,6 @@ async function CreateSnapShot({
     }
   }
   const cronjobuuid = uuidv4()
-  const sqlquery = `INSERT INTO snapshot
-(title, uuid, status, mikrotik_hostname, mikrotik_username, mikrotik_password, mikrotik_port, backup_end, backup_last)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL);`
   const stmt = db.prepare(sqlquery)
   const insertdata = [
     String(body?.title_snapshot||`Default Snapshot ${cronjobuuid}`),
@@ -113,7 +158,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL);`
     String(body.mikrotik_username),
     String(body.mikrotik_password),
     body.mikrotik_port || 8728,
-    new Date(body.backup_date).toISOString()
+    new Date(body.backup_date).toISOString(),
+    0
   ]
   stmt.run(insertdata)
   return {
@@ -183,9 +229,9 @@ async function DeleteSnapShot({ body = { uuid: "" } }) {
 async function UpdateStatusSnapShot({ body = { uuid: "", message: "" } }) {
   const uuidparams = String(body?.uuid||"").trim()
   try {
-    const sqlquery = `UPDATE snapshot SET status = ? WHERE uuid = ?;`
+    const sqlquery = `UPDATE snapshot SET status = ?, backup_last = ? WHERE uuid = ?;`
     const stmt = db.prepare(sqlquery)
-    stmt.run([String(body?.message||""), uuidparams])
+    stmt.run([String(body?.message||""), new Date().toISOString(), uuidparams])
     return {}
   } catch(e) {
     return {}

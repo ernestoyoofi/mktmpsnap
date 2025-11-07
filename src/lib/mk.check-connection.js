@@ -16,7 +16,7 @@ async function CheckConnectionMikrotik({ host = params_ip, username = params_use
         username: username,
         password: password,
         timeout: process.env?.MIKROTIK_TIMEOUT? parseInt(process.env?.MIKROTIK_TIMEOUT||"0") : 2500,
-        debuggingLog: false
+        debuggingLog: true
       }
       const mkapi = new MikrotikAPI(option_apis)
       const ev = (e) => {
