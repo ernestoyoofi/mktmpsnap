@@ -1,0 +1,15 @@
+services:
+  mktmpsnap:
+    image: ernestoyoofi/mktmpsnap:v0.1.0
+    restart: always
+    container_name: mktmpsnap
+    ports:
+      - 3500:3500
+    volumes:
+      - ./data:/app/data
+    networks:
+      - mktmpsnap
+
+networks:
+  mktmpsnap:
+    name: mktmpsnap
